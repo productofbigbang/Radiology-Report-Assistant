@@ -1,0 +1,67 @@
+import os
+import cv2
+import random
+from PIL import Image, ImageEnhance, ImageFilter
+import numpy as np
+from imgaug import augmenters as iaa
+
+# Paths for good and bad quality images
+good_quality_folder = "D:\healthcare project\Image_quality_dataset\good_quality"
+bad_quality_folder = "D:\healthcare project\Image_quality_dataset\\bad_quality"
+os.makedirs(bad_quality_folder, exist_ok=True)
+
+# Augmentation functions
+def extreme_blur(image):
+    return image.filter(ImageFilter.GaussianBlur(radius=random.uniform(15, 20)))
+
+def extreme_crop(image):
+    width, height = image.size
+    left = random.randint(width // 10, width // 3)
+    top = random.randint(height // 10, height // 3)
+    right = random.randint(2 * width // 3, 9 * width // 10)
+    bottom = random.randint(2 * height // 3, 9 * height // 10)
+    return image.crop((left, top, right, bottom)).resize((width, height))
+
+def extreme_brightness(image):
+    enhancer = ImageEnhance.Brightness(image)
+    return enhancer.enhance(random.uniform(2,4))
+
+def extreme_contrast(image):
+    enhancer = ImageEnhance.Contrast(image)
+    return enhancer.enhance(random.uniform(0.4, 0.8))
+
+def extreme_noise(image):
+    img_array = np.array(image)
+    noise = iaa.AdditiveGaussianNoise(scale=(100, 150))
+    img_array = noise.augment_image(img_array)
+    return Image.fromarray(img_array)
+
+# List of augmentation techniques
+augmentations = [
+    extreme_blur,
+    extreme_crop,
+    extreme_brightness,
+    extreme_contrast,
+    extreme_noise
+]
+
+# Apply augmentations to create bad quality images
+def create_bad_quality_images():
+    for img_name in os.listdir(good_quality_folder):
+        img_path = os.path.join(good_quality_folder, img_name)
+        try:
+            with Image.open(img_path) as img:
+                img = img.convert("RGB")  # Ensure RGB format
+
+                # Apply multiple augmentations to generate bad images
+                for i, augmentation in enumerate(augmentations):
+                    augmented_img = augmentation(img)
+                    output_path = os.path.join(bad_quality_folder, f"{os.path.splitext(img_name)[0]}_bad_{i}.jpg")
+                    augmented_img.save(output_path)
+
+                print(f"Augmented bad images saved for: {img_name}")
+        except Exception as e:
+            print(f"Error processing {img_name}: {e}")
+
+if __name__ == "__main__":
+    create_bad_quality_images()
